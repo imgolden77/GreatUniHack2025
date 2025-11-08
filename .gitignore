@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# virtual envs
+Pose_agent/venv/
+venv/
+env/
+ENV/
+
+# editor
+.vscode/
+.idea/
+
+# data / large files
+*.sqlite3
+*.db
+*.pth
+*.so
+
+.env
