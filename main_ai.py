@@ -93,7 +93,6 @@ def process_frame(frame):
     return image, part1_value, part2_value
 
 def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
-    """(수정 없음) 배치 분석 헬퍼 함수 - 각도/거리 모두 처리 가능"""
     if not angle_list:
         return f"{part_name}: No valid data."
 
@@ -119,9 +118,6 @@ def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
         return f"✅ {part_name}: Stable. Great job!"
     
 async def trigger_ai_feedback(report1, report2, mode):
-    """
-    AI 코칭을 별도 태스크로 호출하고, ai_feedback_message 변수를 업데이트합니다.
-    """
     global ai_feedback_message
     ai_feedback_message = "🧠 AI coach is analyzing..." 
     try:
