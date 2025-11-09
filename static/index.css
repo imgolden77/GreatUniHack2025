@@ -101,10 +101,10 @@ h1 {
 
 #video-container {
     position: relative;
-    width: 720px;
+    width: 560px;
     /* max-width: 90vw; */
     /* 모바일 대응 */
-    height: 540px;
+    height: 420px;
     /* 4:3 비율 */
     margin: 20px auto;
     border: 5px solid #007bff;

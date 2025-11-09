@@ -45,8 +45,8 @@ ADVICE_RATIO_THRESHOLD = 0.33
 
 # 모드별 임계값 분리
 FRONTAL_STABILITY_THRESHOLD = 5.0   # 정면: 5도
-SIDE_NECK_THRESHOLD = 0.05          # 측면(목): 5% x-shift
-SIDE_SHOULDER_THRESHOLD = 0.02      # 측면(등): 2% x-shift
+SIDE_NECK_THRESHOLD = 0.03          # 측면(목): 5% x-shift
+SIDE_SHOULDER_THRESHOLD = 0.03      # 측면(등): 2% x-shift
 
 # [신규] angle_history를 일반화된 딕셔너리로 변경
 angle_history = {
