@@ -2,19 +2,21 @@ const videoFeed = document.getElementById('videoFeed');
 const startButton = document.getElementById('startButton');
 const stopButton = document.getElementById('stopButton');
 const feedbackDiv = document.getElementById('feedback');
+const postureBubble = document.getElementById('posture-bubble');
 
 // [신규] 모드 버튼
 const frontalButton = document.getElementById('frontalButton');
 const sideButton = document.getElementById('sideButton');
+const aiButton = document.getElementById('aiButton');
 
 let analysisActive = false;
 let feedbackInterval;
 
-
 const updateFeedback = async () => {
     try {
         // 백엔드의 /feedback 엔드포인트 호출
-        const response = await fetch('/feedback');
+        // const response = await fetch('/feedback');
+        const response = await fetch(`/feedback?t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error('Server not responding');
         const data = await response.json();
 
@@ -29,7 +31,17 @@ const updateFeedback = async () => {
             frontalButton.classList.remove('active');
         }
 
+        // [신규] OpenAI/AI가 반환한 메시지를 postureBubble에 표시
+        // 백엔드가 openai_message 또는 ai_message 같은 키로 반환한다고 가정.
+        if (postureBubble) {
+            const aiMsg = data.ai_message || '';
+            postureBubble.textContent = aiMsg;
+            // 내용이 없으면 숨기기(선택)
+            postureBubble.style.display = aiMsg ? '' : 'none';
+        }
+
         // [수정] 백엔드에서 분석이 멈춘 경우 (e.g. 작업 완료)
+
         if (analysisActive && data.active === false) {
             analysisActive = false;
             startButton.disabled = false;
@@ -41,7 +53,6 @@ const updateFeedback = async () => {
             clearInterval(feedbackInterval);
             // videoFeed.src = ''; // 영상 스트림은 stop 버튼이 관리
         }
-
     } catch (e) {
         // 서버가 멈추거나 통신 오류가 발생했을 때
         if (feedbackDiv) feedbackDiv.textContent = '❌ Server connection error.';
@@ -69,6 +80,32 @@ const setMode = async (mode) => {
 frontalButton.onclick = () => setMode('frontal');
 sideButton.onclick = () => setMode('side');
 
+// [신규] AI 피드백 강제 조회 핸들러
+if (aiButton) {
+    aiButton.onclick = async () => {
+        try {
+            aiButton.disabled = true;
+            aiButton.textContent = 'Fetching AI...';
+
+            const response = await fetch(`/feedback?t=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error('Server not responding');
+            const data = await response.json();
+
+            const aiMsg = data.ai_message || '';
+            if (postureBubble) {
+                postureBubble.textContent = aiMsg;
+                postureBubble.style.display = aiMsg ? '' : 'none';
+            }
+            feedbackDiv.textContent = aiMsg ? 'AI feedback shown.' : 'No AI feedback available yet.';
+        } catch (e) {
+            console.error('AI fetch error:', e);
+            if (feedbackDiv) feedbackDiv.textContent = '❌ Could not fetch AI feedback.';
+        } finally {
+            aiButton.disabled = false;
+            aiButton.textContent = 'Show AI Feedback';
+        }
+    };
+}
 
 // 분석 시작 함수
 startButton.onclick = async () => {

@@ -68,6 +68,35 @@ h1 {
 
 #posture-bubble .bubble-text {
     font-size: 15px;
+    display: none;
+    /* JS에서 내용이 있으면 보이도록 유지 */
+    margin-bottom: 6px;
+}
+
+/* 버튼 스타일: 말풍선 바로 아래 중앙에 배치 */
+.ai-button,
+#aiButton {
+    display: block;
+    margin: 6px auto 0;
+    padding: 8px 14px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ai-button:hover:not(:disabled),
+#aiButton:hover:not(:disabled) {
+    background-color: #005ecb;
+}
+
+.ai-button:disabled,
+#aiButton:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
 }
 
 #video-container {
@@ -153,7 +182,6 @@ button:disabled {
     background-color: #c82333;
 }
 
-
 #feedback {
     margin-top: 15px;
     padding: 15px;
@@ -166,4 +194,11 @@ button:disabled {
     min-height: 40px;
     line-height: 1.5;
     /* 메시지가 없을 때 공간 확보 */
+}
+
+button#aiButton,
+.ai-button {
+    background-color: #007bff !important;
+    color: #fff !important;
+    border: none !important;
 }

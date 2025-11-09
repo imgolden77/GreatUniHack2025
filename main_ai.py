@@ -118,7 +118,7 @@ def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
         worst_angle = max(angle_list, key=abs)
         # 측면 분석은 '방향'이 정면과 다름 (기울기 < 0 이 좋은 것일 수 있음)
         # 여기서는 우선 불균형이 '심했다'는 사실에 집중
-        direction = "right" if worst_angle < 0 else "left" # 정면 모드 기준
+        direction = "right" if worst_angle > 0 else "left" # 정면 모드 기준
         if VIEW_MODE == "side":
             direction = "forward" # 측면 모드에서는 '앞으로'로 통일
             

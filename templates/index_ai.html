@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h1>🚶 AI Posture Analysis Coach 🧠</h1>
+    <h1>🚶 Depend your posture collision! 🧠</h1>
     <p>Select a view mode, press Start, and let the AI coach analyze your posture.</p>
 
     <!-- [신규] 모드 선택기 -->
@@ -36,6 +36,7 @@
         <div id="posture-bubble" class="bubble hidden" aria-live="polite">
             <div class="bubble-text">좋은 자세를 유지하세요.</div>
         </div>
+        <button id="aiButton" class="ai-button">Show AI Feedback</button>
     </div>
 
     <script src="{{ request.url_for('static', path='scripts.js') }}" defer></script>
