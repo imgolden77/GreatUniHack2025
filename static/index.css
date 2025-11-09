@@ -102,10 +102,7 @@ h1 {
 #video-container {
     position: relative;
     width: 560px;
-    /* max-width: 90vw; */
-    /* 모바일 대응 */
     height: 420px;
-    /* 4:3 비율 */
     margin: 20px auto;
     border: 5px solid #007bff;
     border-radius: 8px;
@@ -117,7 +114,6 @@ h1 {
     height: 100%;
     display: block;
     object-fit: cover;
-    /* 컨테이너에 맞게 채움 */
 }
 
 button {
@@ -138,31 +134,25 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* --- [신규] 모드 선택 버튼 스타일 --- */
+
 #mode-selector {
     margin-bottom: 0;
-    /* 상단 컨테이너가 대신 여백을 관리 */
 }
 
-/* --- [신규] 모드 선택 버튼 스타일 --- */
 #mode-selector {
     margin-bottom: 15px;
 }
 
 .mode-button {
     background-color: #f8f9fa;
-    /* 비활성 색 */
     color: #007bff;
     border: 2px solid #007bff;
 }
 
 .mode-button.active {
     background-color: #007bff;
-    /* 활성 색 */
     color: white;
 }
-
-/* --- [신규 스타일 끝] --- */
 
 #startButton {
     background-color: #28a745;
@@ -193,7 +183,6 @@ button:disabled {
     border: 1px solid #ddd;
     min-height: 40px;
     line-height: 1.5;
-    /* 메시지가 없을 때 공간 확보 */
 }
 
 button#aiButton,

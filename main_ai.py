@@ -1,4 +1,3 @@
-# main.py (모드 선택 기능 추가)
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -9,10 +8,8 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 import asyncio
 import math
 
-# --- 모든 분석 모듈 임포트 ---
 from src.detectors import hip, front_shoulder, neck, side_shoulder
 from src import ai_coach
-# (utils.py는 위 모듈들이 내부적으로 사용)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -29,26 +26,22 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 cap = cv2.VideoCapture(0)
 
-# --- 상태 관리 전역 변수 ---
 analysis_active = False
 current_task = None
 is_collecting_data = False 
 feedback_message = "Waiting for analysis to start..."
 ai_feedback_message = ""
-countdown_message = ""  # 카운트다운용
+countdown_message = ""  
 
-# --- [신규] 모드 및 임계값 관리 ---
-VIEW_MODE = "frontal"  # "frontal" (정면) 또는 "side" (측면)
+VIEW_MODE = "frontal" 
 VISIBILITY_THRESHOLD = 0.6
 ANGLE_COLLECTION_DURATION = 10  
 ADVICE_RATIO_THRESHOLD = 0.33
 
-# 모드별 임계값 분리
-FRONTAL_STABILITY_THRESHOLD = 5.0   # 정면: 5도
-SIDE_NECK_THRESHOLD = 0.03          # 측면(목): 5% x-shift
-SIDE_SHOULDER_THRESHOLD = 0.03      # 측면(등): 2% x-shift
 
-# [신규] angle_history를 일반화된 딕셔너리로 변경
+FRONTAL_STABILITY_THRESHOLD = 5.0   
+SIDE_NECK_THRESHOLD = 0.03          
+SIDE_SHOULDER_THRESHOLD = 0.03      
 angle_history = {
     "part1": [],
     "part2": []
@@ -66,8 +59,7 @@ def process_frame(frame):
     
     if results.pose_landmarks:
         landmarks = results.pose_landmarks.landmark
-        
-        # --- [신규] VIEW_MODE에 따라 분기 ---
+
         if VIEW_MODE == "frontal":
             part1_value, msg1, color1 = hip.analyze_hip_tilt(
                 landmarks, is_collecting_data, FRONTAL_STABILITY_THRESHOLD, VISIBILITY_THRESHOLD
@@ -82,7 +74,7 @@ def process_frame(frame):
             part2_value, msg2, color2 = side_shoulder.analyze_round_shoulder(
                 landmarks, is_collecting_data, SIDE_SHOULDER_THRESHOLD, VISIBILITY_THRESHOLD
             )
-        # --- (수정 끝) ---
+
 
         mp_drawing.draw_landmarks(
             image,
@@ -95,7 +87,6 @@ def process_frame(frame):
         msg1 = "❌ No pose detected"
         msg2 = ""
 
-    # 두 개의 상태 메시지를 다른 위치에 표시
     cv2.putText(image, msg1, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color1, 2, cv2.LINE_AA)
     cv2.putText(image, msg2, (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, color2, 2, cv2.LINE_AA)
     
@@ -106,7 +97,6 @@ def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
     if not angle_list:
         return f"{part_name}: No valid data."
 
-    # abs(value) > threshold 로직은 각도(e.g. 3.0)와 거리(e.g. 0.05) 모두에 적용 가능
     threshold_frames = [angle for angle in angle_list if abs(angle) > threshold]
     
     tilt_ratio = len(threshold_frames) / len(angle_list) if len(angle_list) > 0 else 0
@@ -116,11 +106,10 @@ def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
     if tilt_ratio > ratio_threshold:
         percentage = int(tilt_ratio * 100)
         worst_angle = max(angle_list, key=abs)
-        # 측면 분석은 '방향'이 정면과 다름 (기울기 < 0 이 좋은 것일 수 있음)
-        # 여기서는 우선 불균형이 '심했다'는 사실에 집중
-        direction = "right" if worst_angle > 0 else "left" # 정면 모드 기준
+
+        direction = "right" if worst_angle > 0 else "left" 
         if VIEW_MODE == "side":
-            direction = "forward" # 측면 모드에서는 '앞으로'로 통일
+            direction = "forward" 
             
         return (
             f"⚠️ {part_name}: Imbalance ({percentage}%)! "
@@ -129,15 +118,13 @@ def _analyze_angle_list(angle_list, part_name, threshold, ratio_threshold):
     else:
         return f"✅ {part_name}: Stable. Great job!"
     
-# ⬅️ [신규] AI 피드백을 백그라운드 태스크로 호출하는 헬퍼 함수
 async def trigger_ai_feedback(report1, report2, mode):
     """
     AI 코칭을 별도 태스크로 호출하고, ai_feedback_message 변수를 업데이트합니다.
     """
     global ai_feedback_message
-    ai_feedback_message = "🧠 AI coach is analyzing..."  # 1. 로딩 메시지 설정
+    ai_feedback_message = "🧠 AI coach is analyzing..." 
     try:
-        # 2. ai_coach 모듈을 실제로 호출
         ai_message = await ai_coach.get_ai_feedback(report1, report2, mode)
         ai_feedback_message = ai_message
     except Exception as e:
@@ -147,8 +134,7 @@ async def trigger_ai_feedback(report1, report2, mode):
 
 async def batch_analysis_task():
     global analysis_active, angle_history, feedback_message, is_collecting_data, countdown_message
-    
-    # --- [신규] 카운트다운 로직 (이전과 동일) ---
+
     try:
         for i in range(3, 0, -1):
             countdown_message = str(i)
@@ -164,13 +150,11 @@ async def batch_analysis_task():
     except asyncio.CancelledError:
         countdown_message = ""
         return
-    # --- [카운트다운 끝] ---
 
     loop = asyncio.get_event_loop()
     start_time = loop.time()
     end_time = start_time + ANGLE_COLLECTION_DURATION
-    
-    # [수정] 일반화된 딕셔너리 리스트 비움
+
     angle_history["part1"].clear()
     angle_history["part2"].clear()
     
@@ -190,8 +174,7 @@ async def batch_analysis_task():
         return
 
     feedback_message = "Data collection complete. Analyzing posture..."
-    
-    # --- [신규] VIEW_MODE에 따라 분기하여 리포트 생성 ---
+
     if VIEW_MODE == "frontal":
         report1 = _analyze_angle_list(
             angle_history["part1"], "Hip", FRONTAL_STABILITY_THRESHOLD, ADVICE_RATIO_THRESHOLD
@@ -231,17 +214,14 @@ async def generate_frames():
         frame_to_stream = frame.copy() 
         
         if analysis_active:
-            # [수정] part1, part2 값으로 받음
             frame_to_stream, part1_value, part2_value = process_frame(frame)
             
             if is_collecting_data:
-                # [수정] 일반화된 딕셔너리에 저장
                 if part1_value is not None:
                     angle_history["part1"].append(part1_value)
                 if part2_value is not None:
                     angle_history["part2"].append(part2_value)
                     
-            # 카운트다운 그리기 (이전과 동일)
             if countdown_message:
                 (h, w) = frame_to_stream.shape[:2]
                 font_scale = 6
@@ -255,7 +235,6 @@ async def generate_frames():
                 cv2.putText(frame_to_stream, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 
                             font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
         else:
-            # [신규] 분석 비활성 시 현재 모드 표시
             mode_text = f"Mode: {VIEW_MODE.capitalize()}. Press Start."
             cv2.putText(frame_to_stream, mode_text, (50, 50), 
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
@@ -284,7 +263,6 @@ async def start_analysis():
         if current_task:
             current_task.cancel()
         current_task = asyncio.create_task(batch_analysis_task())
-        # [수정] 모드에 맞는 시작 메시지
         feedback_message = f"{VIEW_MODE.capitalize()} analysis started!"
         if VIEW_MODE == "side":
             feedback_message += " (Showing LEFT side)"
@@ -298,7 +276,7 @@ async def stop_analysis():
         ai_feedback_message = ""
         analysis_active = False
         is_collecting_data = False 
-        countdown_message = ""  # 카운트다운 중지
+        countdown_message = ""  
         
         if current_task:
             current_task.cancel()
@@ -308,7 +286,6 @@ async def stop_analysis():
         print("--- [AGENT] ANALYSIS STOPPED ---")
     return {"status": "stopped"}
 
-# --- [신규] 분석 모드 변경 엔드포인트 ---
 @app.post("/control/set_view/{view_name}")
 async def set_view(view_name: str):
     global VIEW_MODE, feedback_message, analysis_active
@@ -332,11 +309,9 @@ async def video_feed():
 
 @app.get("/feedback")
 async def get_current_feedback():
-    # [수JSON] 'mode' 키로 현재 뷰 모드를 클라이언트에 전달
-    # return {"message": feedback_message}
     return {
         "message": feedback_message,        # (e.g. "Final Diagnosis: ...")
-        "ai_message": ai_feedback_message,  # ⬅️ [신규] (e.g. "AI coach is analyzing...")
+        "ai_message": ai_feedback_message,  # (e.g. "AI coach is analyzing...")
         "active": analysis_active,
         "collecting": is_collecting_data,
         "mode": VIEW_MODE 
@@ -344,6 +319,4 @@ async def get_current_feedback():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    # 'index_mode.html' 템플릿에 "Frontal" / "Side" 모드를
-    # 선택(POST /control/set_view/{mode})할 수 있는 버튼이 필요합니다.
     return templates.TemplateResponse("index_ai.html", {"request": request})
