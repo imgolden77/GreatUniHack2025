@@ -23,3 +23,10 @@ ENV/
 *.so
 
 .env
+templates/index_wo_ai.html
+templates/index.html
+main_bone.py
+main_wo_ai.py
+main_wo_ai2.py
+main.py
+chatbot.py

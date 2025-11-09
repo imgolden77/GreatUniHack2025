@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚶 AI Posture Analysis Coach 🧠</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='index.css') }}" />
+</head>
+
+<body>
+    <h1>🚶 AI Posture Analysis Coach 🧠</h1>
+    <p>Select a view mode, press Start, and let the AI coach analyze your posture.</p>
+
+    <!-- [신규] 모드 선택기 -->
+    <div id="top-controls">
+        <div id="mode-selector">
+            <strong>View Mode:</strong>
+            <button id="frontalButton" class="mode-button">Frontal (Hip/Shoulder)</button>
+            <button id="sideButton" class="mode-button">Side (Neck/Back)</button>
+        </div>
+        <div id="controls">
+            <button id="startButton">Start Analysis</button>
+            <button id="stopButton" disabled>Reset</button>
+        </div>
+    </div>
+
+    <div id="feedback">Waiting for analysis to start...</div>
+
+    <div id="video-area">
+        <div id="video-container">
+            <img id="videoFeed" src="" alt="Live Video Feed will appear here">
+        </div>
+
+        <!-- 화면 옆에 보일 말풍선 -->
+        <div id="posture-bubble" class="bubble hidden" aria-live="polite">
+            <div class="bubble-text">좋은 자세를 유지하세요.</div>
+        </div>
+    </div>
+
+    <script src="{{ request.url_for('static', path='scripts.js') }}" defer></script>
+</body>
+
+</html>

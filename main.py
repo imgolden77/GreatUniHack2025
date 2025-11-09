@@ -2,9 +2,13 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, StreamingResponse
+from ai_coach import get_ai_feedback_from_gpt
 import asyncio
 import math
+
+templates = Jinja2Templates(directory="templates")
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
@@ -16,7 +20,7 @@ pose = mp_pose.Pose(
 mp_drawing = mp.solutions.drawing_utils
 
 def calculate_angle(p1, p2):
-    delta_y =p2.y -p1.y
+    delta_y =-(p2.y -p1.y)
     delta_x =p2.x -p1.x
     angle_rad =math.atan2(delta_y, delta_x)
     angle_deg =math.degrees(angle_rad)
@@ -34,6 +38,11 @@ analysis_active = False #
 cap =cv2.VideoCapture(0)
 
 VISIBILITY_THRESHOLD = 0.6
+STABILITY_THRESHOLD = 5.0
+
+current_ai_task = None
+last_calculated_angle = 0.0
+ai_feedback_message = "Waiting AI analysis..."
 
 def process_frame(frame):
     image =cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -76,7 +85,7 @@ def process_frame(frame):
     return image, None
 
 async def generate_frames():
-    global analysis_active
+    global analysis_active, last_calculated_angle
 
     while True:
         success, frame = cap.read()
@@ -92,6 +101,7 @@ async def generate_frames():
             
             # --- 2단계 디버깅용 로그 (유지) ---
             if hip_angle is not None:
+                last_calculated_angle = hip_angle
                 print(f"Calculated Hip Angle: {hip_angle:.2f} degrees")
 
         ret, buffer =cv2.imencode('.jpg', frame_to_stream)
@@ -102,19 +112,58 @@ async def generate_frames():
         
         await asyncio.sleep(0.01)
 
+async def ai_analysis_task():
+    global analysis_active, last_calculated_angle, ai_feedback_message
+    
+    # 루프 시작 시점 설정
+    ai_feedback_message = "Waiting AI analysis..." 
+    
+    while analysis_active:
+        current_angle = last_calculated_angle
+        
+        # 1. 비대칭 지속성 판단
+        if abs(current_angle) > STABILITY_THRESHOLD:
+             
+             # 2. AI에게 요청
+             # 사용자에게 요청 중임을 알림
+             temp_angle = current_angle
+             ai_feedback_message = f"🧠 AI Coach: {abs(temp_angle):.2f}° tilt. Generating feedback..."
+             
+             # ai_coach.py의 get_ai_feedback_from_gpt 함수 호출
+             # (이 함수는 5도 미만일 때는 '안정적' 메시지를 반환하도록 ai_coach.py에 구현되어야 함)
+             new_message = await get_ai_feedback_from_gpt(temp_angle)
+             ai_feedback_message = new_message
+             
+        else:
+             # 안정적일 때의 메시지
+             ai_feedback_message = f"🧠 AI Coach: Stable, Keep going! ({abs(current_angle):.2f}°)"
+
+        # 2초마다 AI 분석 실행 (OpenAI API 호출 빈도 조절)
+        await asyncio.sleep(2.0) 
+        
+    ai_feedback_message = "Analsis has stopped."
+
 
 @app.post("/control/start")
 async def start_analysis():
-    global analysis_active
-    analysis_active = True
-    print("--- [AGENT] ANALYSIS STARTED ---")
+    global analysis_active, current_ai_task, ai_feedback_message
+    if not analysis_active:
+        analysis_active = True
+        ai_feedback_message = "Starting analysis..."
+        current_ai_task = asyncio.create_task(ai_analysis_task())
+        print("--- [AGENT] ANALYSIS STARTED ---")
     return {"status": "started"}
 
 @app.post("/control/stop")
 async def stop_analysis():
-    global analysis_active
-    analysis_active = False
-    print("--- [AGENT] ANALYSIS STOPPED ---")
+    global analysis_active, current_ai_task, ai_feedback_message
+    if analysis_active:
+        analysis_active = False
+        if current_ai_task:
+            current_ai_task.cancel()
+            current_ai_task = None
+        ai_feedback_message = "Analysis stopped."
+        print("--- [AGENT] ANALYSIS STOPPED ---")
     return {"status": "stopped"}
 
 @app.get("/video_feed")
@@ -123,68 +172,9 @@ async def video_feed():
 
 @app.get("/", response_class = HTMLResponse)
 async def index(request: Request):
-    html_content ="""
-        <html>
-        <head>
-            <title>FastAPI Pose Agent</title>
-            <style>
-                body { font-family: sans-serif; text-align: center; }
-                img { border: 5px solid #007bff; border-radius: 8px; }
-                button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
-            </style>
-        </head>
-        <body>
-            <h1>🚶 AI 자세 분석 에이전트 🏃</h1>
-            <p>분석을 시작하려면 'Start Analysis'를 눌러주세요.</p>
-            
-            <div id="controls">
-                <button id="startButton">Start Analysis</button>
-                <button id="stopButton" disabled>Stop Analysis</button>
-            </div>
-            
-            <img id="videoFeed" src="/video_feed" width="640" height="480">
-            
-            <div id="status">Analysis Not Started.</div>
+    return templates.TemplateResponse("index.html", {"request": request})
 
-            <script>
-                const videoFeed = document.getElementById('videoFeed');
-                const startButton = document.getElementById('startButton');
-                const stopButton = document.getElementById('stopButton');
-                const statusDiv = document.getElementById('status');
-                
-                let analysisActive = false;
-                
-                // 분석 시작 함수
-                startButton.onclick = async () => {
-                    if (analysisActive) return;
-                    analysisActive = true;
-                    statusDiv.textContent = 'Analysis Running...';
-                    startButton.disabled = true;
-                    stopButton.disabled = false;
-                    
-                    // FastAPI 백엔드에 분석 시작을 알리는 요청을 보냅니다. (NEW)
-                    await fetch('/control/start', { method: 'POST' });
-                    // videoFeed.src = '/video_feed';
-                };
-
-                // 분석 정지 함수
-                stopButton.onclick = async () => {
-                    if (!analysisActive) return;
-                    analysisActive = false;
-                    statusDiv.textContent = 'Analysis Stopped.';
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
-
-                    // FastAPI 백엔드에 분석 정지를 알리는 요청을 보냅니다. (NEW)
-                    await fetch('/control/stop', { method: 'POST' });
-                    // videoFeed.src = '';
-                };
-
-                // 초기에는 영상 스트림 URL을 비워두어 분석 전에는 움직이지 않도록 합니다.
-            </script>
-        </body>
-    </html>
-    """
-
-    return HTMLResponse(content=html_content, status_code=200)
+@app.get("/ai_feedback")
+async def get_current_ai_feedback():
+    return {"message": ai_feedback_message}
 
