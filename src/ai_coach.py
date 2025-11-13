@@ -11,15 +11,15 @@ try:
         api_key=os.environ.get("OPENAI_API_KEY"),
     )
     if not os.environ.get("OPENAI_API_KEY"):
-        print("--- [AI_COACH_ERROR] OPENAI_API_KEY 환경 변수가 설정되지 않았습니다. ---")
+        print("--- [AI_COACH_ERROR] OPENAI_API_KEY has not been set. ---")
 except Exception as e:
-    print(f"--- [AI_COACH_ERROR] OpenAI 클라이언트 초기화 실패: {e} ---")
+    print(f"--- [AI_COACH_ERROR] Failed to initialize OpenAI client: {e} ---")
     client = None
 
 async def get_ai_feedback(report1: str, report2: str, mode: str) -> str:
     
     if client is None:
-        print("--- [AI_COACH] OpenAI 클라이언트가 없어 API 호출을 건너뜁니다. ---")
+        print("--- [AI_COACH] OpenAI client is not available, skipping API call. ---")
         return f"(AI Disabled) Diagnosis: {report1} | {report2}"
         
     system_prompt = (

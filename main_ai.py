@@ -190,9 +190,7 @@ async def batch_analysis_task():
         report2 = "Invalid Mode"
         
     feedback_message = f"Final Diagnosis: {report1} | {report2}"
-    # [수정 2] AI 피드백 호출은 백그라운드 태스크로 "발사" (non-blocking)
     asyncio.create_task(trigger_ai_feedback(report1, report2, VIEW_MODE))
-    # --- (수정 끝) ---
 
     analysis_active = False 
     print("--- [AGENT] BATCH ANALYSIS FINISHED ---")
