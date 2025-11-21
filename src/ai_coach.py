@@ -62,14 +62,14 @@ async def get_ai_feedback(report1: str, report2: str, mode: str) -> str:
 
     except BadRequestError as e:
         print(f"--- [API ERROR: BAD REQUEST] Code: {e.code}, Message: {e.message}")
-        return "⚠️ AI Error: 요청 형식이 잘못되었습니다. (프롬프트 확인 필요)"
+        return "⚠️ AI Error: BadRequestError"
     except RateLimitError:
-        return "⚠️ AI Error: API 사용 한도를 초과했습니다. 잠시 후 시도해 주세요."
+        return "⚠️ AI Error: RateLimitError"
     except APIConnectionError:
-        return "⚠️ AI Error: OpenAI 서버 연결 실패. 네트워크 상태를 확인하세요."
+        return "⚠️ AI Error: APIConnectionError"
     except APIError as e:
         print(f"--- [API ERROR] Status: {e.status_code}, Message: {e.message}")
-        return "⚠️ AI Error: OpenAI API 통신 중 알 수 없는 오류 발생"
+        return "⚠️ AI Error: APIError"
     except Exception as e: 
         print(f"--- [INTERNAL ERROR] {e}")
-        return f"⚠️ 내부 오류: {e.__class__.__name__}"
+        return f"INTERNAL ERROR: {e.__class__.__name__}"
